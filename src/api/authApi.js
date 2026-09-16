@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://khatha-wallet-backend-production.up.railway.app/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://khatha-backend.onrender.com/api";
 const BASE_URL = `${API_BASE}/auth`;
 const CUSTOMER_AUTH_URL = `${API_BASE}/customer-auth`;
 
