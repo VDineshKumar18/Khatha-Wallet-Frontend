@@ -1402,3 +1402,193 @@ body:not(.dark) .app-layout {
     align-items: center;
     gap: 6px;
 }
+
+/* SHOP DISCOVERY PREMIUM STYLES */
+.shop-discovery-section {
+    margin-bottom: 30px;
+}
+
+.shop-scroll-row::-webkit-scrollbar {
+    display: none;
+}
+
+.shop-discovery-card {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.shop-discovery-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1) !important;
+    border-color: var(--primary) !important;
+}
+
+.shop-discovery-card:active {
+    transform: translateY(-4px) scale(0.98);
+}
+
+.retailer-tag {
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    width: fit-content;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =========================================
+   SWIGGY-STYLE PREMIUM CATALOG
+   ========================================= */
+
+.swiggy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 32px;
+    padding: 20px;
+}
+
+@media (max-width: 640px) {
+    .swiggy-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+}
+
+.swiggy-card {
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.swiggy-card:hover {
+    transform: scale(0.95);
+}
+
+.swiggy-img-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/10;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f1f5f9;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.swiggy-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.swiggy-card:hover .swiggy-img {
+    transform: scale(1.1);
+}
+
+.swiggy-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+    color: white;
+}
+
+.swiggy-promo-text {
+    font-size: 18px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+}
+
+.swiggy-info {
+    padding: 12px 2px;
+}
+
+.swiggy-name {
+    margin: 0 0 2px 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e293b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.swiggy-rating-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.swiggy-rating-badge {
+    background: #22c55e;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.swiggy-rating-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.swiggy-dot {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.swiggy-time {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.swiggy-sub-info {
+    font-size: 14px;
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.swiggy-location {
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* CART CONTROLS INTEGRATION */
+.swiggy-cart-controls {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.swiggy-add-btn {
+    background: white;
+    color: #22c55e;
+    border: 1px solid #e2e8f0;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.swiggy-add-btn:hover {
+    background: #f8fafc;
+}

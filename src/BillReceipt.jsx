@@ -1,3 +1,5 @@
+import { openWhatsApp } from "./utils/whatsappUtils";
+
 function BillReceipt({ bill, products, onClose }) {
   const productMap = {};
   products.forEach(p => {
@@ -77,6 +79,7 @@ function BillReceipt({ bill, products, onClose }) {
         <body>
           <div class="center">
             <h3>🛒 Khatha Book</h3>
+            <h4>${bill.billNumber?.startsWith('ORD-') ? 'INVOICE' : 'RECEIPT'}</h4>
             <p>Bill No: ${bill.billNumber}</p>
             <p>Date: ${bill.billDate}</p>
           </div>
@@ -98,6 +101,8 @@ function BillReceipt({ bill, products, onClose }) {
             <p><b>Total:</b> ₹ ${bill.amount}</p>
             <p><b>Paid:</b> ₹ ${bill.paidAmount}</p>
             <p><b>Status:</b> ${bill.status}</p>
+            ${bill.paymentMode ? `<p><b>Method:</b> ${bill.paymentMode === "ONLINE" ? "Online Gateway" : bill.paymentMode}</p>` : ''}
+            ${bill.gatewayTransactionRef ? `<p><b>Txn Ref:</b> ${bill.gatewayTransactionRef}</p>` : ''}
           </div>
           <div class="center" style="margin-top: 20px; font-size: 12px;">
             <p>Thank you for your business!</p>
@@ -118,6 +123,9 @@ function BillReceipt({ bill, products, onClose }) {
     <div className="receipt-overlay">
       <div className="receipt-card">
         <h3>🛒 Khatha Book</h3>
+        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#666', marginBottom: 10, display: 'block' }}>
+          {bill.billNumber?.startsWith('ORD-') ? 'INVOICE' : 'RECEIPT'}
+        </span>
         <p>Bill No: {bill.billNumber}</p>
         <p>Date: {bill.billDate}</p>
         <hr />
@@ -145,9 +153,12 @@ function BillReceipt({ bill, products, onClose }) {
         <p><b>Total:</b> ₹ {bill.amount}</p>
         <p><b>Paid:</b> ₹ {bill.paidAmount}</p>
         <p><b>Status:</b> {bill.status}</p>
+        {bill.paymentMode && <p><b>Method:</b> {bill.paymentMode === "ONLINE" ? "Online Gateway" : bill.paymentMode}</p>}
+        {bill.gatewayTransactionRef && <p style={{ fontSize: '13px' }}><b>Txn Ref:</b> <code style={{ color: '#2563eb', background: '#f1f5f9', padding: '1px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>{bill.gatewayTransactionRef}</code></p>}
 
         <div className="receipt-actions">
           <button onClick={handlePrint}>🖨 Print</button>
+          <button onClick={() => openWhatsApp('bill', bill.id)} style={{ background: '#25d366', color: 'white', border: 'none' }}>WhatsApp</button>
           <button onClick={onClose}>❌ Close</button>
         </div>
       </div>

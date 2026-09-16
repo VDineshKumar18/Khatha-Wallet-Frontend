@@ -975,3 +975,57 @@
   line-height: 1.6;
   margin: 0;
 }
+
+/* ================= HEADER NAV PILLS ================= */
+.header-nav-pill {
+  display: flex;
+  gap: 16px; /* Increased gap for better button separation */
+  background: rgba(255, 255, 255, 0.5);
+  padding: 4px 6px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.nav-link-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.nav-link-btn:hover,
+.nav-link-btn.highlight {
+  background: white;
+  color: #2563eb;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+}
+
+.subheader-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0 10px;
+  width: 100%;
+  position: relative;
+  z-index: 99;
+}
+
+@media (max-width: 768px) {
+  .header-nav-pill {
+    gap: 8px; /* Increased mobile gap */
+    padding: 2px 4px;
+  }
+  .nav-link-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .subheader-nav {
+    padding: 15px 0 5px;
+  }
+}

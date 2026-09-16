@@ -8,6 +8,7 @@ import BillReceipt from "./BillReceipt";
 import InvoicePreview from "./InvoicePreview";
 import MobileScanner from "./MobileScanner";
 import UPIPaymentModal from "./UPIPaymentModal";
+import PaymentGatewayModal from "./components/PaymentGatewayModal";
 import { ScanBarcode, Search, ChevronRight, ShoppingBag, ArrowLeft, Trash2, FilePlus, Package } from "lucide-react";
 import { toast } from "react-toastify";
 import "./billing.css";
@@ -31,6 +32,7 @@ function Billing({ onBack, quickMode = false }) {
   const [savedBill, setSavedBill] = useState(null);
   const [showMobileCart, setShowMobileCart] = useState(false); // Mobile Cart Modal
   const [showUPIModal, setShowUPIModal] = useState(false); // UPI Payment Modal
+  const [showGateway, setShowGateway] = useState(false); // Payment Gateway Modal
   const [isCartOpen, setIsCartOpen] = useState(quickMode); // Desktop Cart Toggle
 
   const [paymentMode, setPaymentMode] = useState("CASH");
@@ -156,7 +158,7 @@ function Billing({ onBack, quickMode = false }) {
   const totalItems = billItems.reduce((sum, i) => sum + Number(i.qty), 0);
 
   /* ================= SAVE ================= */
-  const saveBill = async (customerId) => {
+  const saveBill = async (customerId, gatewayTxnRef = null) => {
     if (billItems.length === 0) {
       toast.error("Add at least one product");
       return;
@@ -172,6 +174,7 @@ function Billing({ onBack, quickMode = false }) {
       paymentMode,
       items: itemsString,
       loyaltyPointsUsed: safeRedeemPoints,
+      gatewayTransactionRef: gatewayTxnRef,
     };
 
     if (!customerId && paymentMode === "KHATHA") {
@@ -187,6 +190,12 @@ function Billing({ onBack, quickMode = false }) {
     // Intercept for UPI
     if (paymentMode === "UPI" && !showUPIModal) {
       setShowUPIModal(true);
+      return;
+    }
+
+    // Intercept for ONLINE Gateway
+    if (paymentMode === "ONLINE" && !gatewayTxnRef) {
+      setShowGateway(true);
       return;
     }
 
@@ -232,7 +241,7 @@ function Billing({ onBack, quickMode = false }) {
   /* ================= RENDER HELPERS ================= */
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.barcode.includes(searchTerm)
+    (p.barcode && p.barcode.includes(searchTerm))
   );
 
   return (
@@ -511,6 +520,8 @@ function Billing({ onBack, quickMode = false }) {
             status={savedBill.status}
             paidAmount={savedBill.paidAmount}
             dueAmount={savedBill.dueAmount}
+            paymentMode={savedBill.paymentMode}
+            gatewayTransactionRef={savedBill.gatewayTransactionRef}
             onClose={resetBillingState}
           />
         ) : (
@@ -546,6 +557,22 @@ function Billing({ onBack, quickMode = false }) {
             onPaymentConfirmed={() => {
               setShowUPIModal(false);
               saveBill(selectedCustomer?.id); // Proceed to save bill
+            }}
+          />
+        )
+      }
+
+      {
+        showGateway && (
+          <PaymentGatewayModal
+            amount={total}
+            customerName={selectedCustomer?.name || "Walk-in Customer"}
+            customerEmail={selectedCustomer?.email || "walkin@khatha.com"}
+            retailerId={retailerId}
+            onClose={() => setShowGateway(false)}
+            onSuccess={(txnRef) => {
+              setShowGateway(false);
+              saveBill(selectedCustomer?.id, txnRef);
             }}
           />
         )
@@ -693,13 +720,13 @@ function CartContent({
         <div className="bill-summary-row total"><span>To Pay</span> <span>₹{total}</span></div>
 
         <div className="payment-modes">
-          {["CASH", "UPI", "KHATHA"].map(mode => (
+          {["CASH", "ONLINE", "KHATHA"].map(mode => (
             <button
               key={mode}
               className={paymentMode === mode ? 'active' : ''}
               onClick={() => setPaymentMode(mode)}
             >
-              {mode}
+              {mode === "ONLINE" ? "CARD/NB" : mode}
             </button>
           ))}
         </div>

@@ -1,10 +1,25 @@
-import { ArrowLeft, Search, Filter, Download, Eye, FileText, Image as ImageIcon, User, ArrowUpRight, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Filter, Download, Eye, FileText, Image as ImageIcon, User, ArrowUpRight, X, Loader2, Trash2, RotateCcw, MessageCircle } from "lucide-react";
+import { openWhatsApp } from "./utils/whatsappUtils";
 import { useState, useEffect } from "react";
-import { getAllBills } from "./api/billApi";
+import { getAllBills, getRecycledBills, deleteBill, restoreBill, permanentDeleteBill } from "./api/billApi";
 import { getProducts } from "./api/productApi";
+import { toast } from "react-toastify";
 import BillReceipt from "./BillReceipt";
 import EditBillModal from "./EditBillModal";
 import "./BillList.css";
+
+const formatBillItems = (bill) => {
+    if (!bill || !bill.items) return "";
+    if (bill.billNumber?.startsWith('ORD-')) {
+        try {
+            const parsed = JSON.parse(bill.items);
+            return parsed.map(i => `${i.qty}x ${i.name}`).join(", ");
+        } catch {
+            return bill.items.length > 30 ? bill.items.substring(0, 30) + "..." : bill.items;
+        }
+    }
+    return bill.items.length > 30 ? bill.items.substring(0, 30) + "..." : bill.items;
+};
 
 function BillList({ onBack }) {
     const [bills, setBills] = useState([]);
@@ -12,10 +27,11 @@ function BillList({ onBack }) {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedBill, setSelectedBill] = useState(null);
+    const [activeTab, setActiveTab] = useState("ACTIVE"); // 'ACTIVE' | 'RECYCLED'
 
     useEffect(() => {
         loadBills();
-    }, []);
+    }, [activeTab]);
 
     useEffect(() => {
         const safeBills = Array.isArray(bills) ? bills : [];
@@ -37,7 +53,9 @@ function BillList({ onBack }) {
     const loadBills = async () => {
         setLoading(true);
         try {
-            const res = await getAllBills();
+            const res = activeTab === "RECYCLED"
+                ? await getRecycledBills()
+                : await getAllBills();
             const sortedBills = (res.data || []).sort((a, b) =>
                 new Date(b.billDate || b.createdAt) - new Date(a.billDate || a.createdAt)
             );
@@ -45,8 +63,41 @@ function BillList({ onBack }) {
             setFilteredBills(sortedBills);
         } catch (err) {
             console.error("Failed to load bills", err);
+            toast.error("Failed to load bills");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Move this bill to the recycle bin?")) return;
+        try {
+            await deleteBill(id);
+            toast.success("Bill moved to recycle bin");
+            loadBills();
+        } catch (e) {
+            toast.error("Failed to delete bill");
+        }
+    };
+
+    const handleRestore = async (id) => {
+        try {
+            await restoreBill(id);
+            toast.success("Bill restored successfully");
+            loadBills();
+        } catch (e) {
+            toast.error("Failed to restore bill");
+        }
+    };
+
+    const handlePermanentDelete = async (id) => {
+        if (!window.confirm("Permanently delete this bill? This cannot be undone!")) return;
+        try {
+            await permanentDeleteBill(id);
+            toast.success("Bill permanently deleted");
+            loadBills();
+        } catch (e) {
+            toast.error("Failed to permanently delete bill");
         }
     };
 
@@ -112,9 +163,14 @@ function BillList({ onBack }) {
         <div className="bill-list-container fade-in">
             {/* Header Area */}
             <div className="glass-card bill-list-header">
-                <div className="header-left">
-                    <h2>📜 All Bills</h2>
-                    <p className="text-muted">History of all transactions</p>
+                <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <button className="btn ghost" onClick={onBack} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', color: '#64748b' }}>
+                        <ArrowLeft size={16} />
+                    </button>
+                    <div>
+                        <h2>📜 All Bills</h2>
+                        <p className="text-muted">History of all transactions</p>
+                    </div>
                 </div>
 
                 <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -129,14 +185,38 @@ function BillList({ onBack }) {
                         {searchTerm && <X className="clear-search" size={16} onClick={() => setSearchTerm("")} />}
                     </div>
 
-                    <button className="btn secondary icon-btn" onClick={handleExport} title="Export to CSV">
-                        <Download size={18} />
+                    <button className="btn secondary icon-btn" onClick={handleExport} title="Export to CSV" style={{ display: 'flex', alignItems: 'center', gap: '8px', width: 'auto', padding: '0 15px' }}>
+                        <Download size={16} />
+                        <span style={{ fontSize: '14px', fontWeight: 600 }}>Excel</span>
                     </button>
-                    <button className="btn ghost" onClick={onBack}>← Back</button>
                 </div>
             </div>
 
-            {/* Content */}
+            {/* Tabs for Active / Recycled */}
+            <div className="tab-container" style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <button
+                    onClick={() => setActiveTab('ACTIVE')}
+                    style={{
+                        background: 'none', border: 'none', padding: '8px 16px', cursor: 'pointer',
+                        fontWeight: activeTab === 'ACTIVE' ? 'bold' : 'normal',
+                        color: activeTab === 'ACTIVE' ? '#2563eb' : '#64748b',
+                        borderBottom: activeTab === 'ACTIVE' ? '2px solid #2563eb' : 'none'
+                    }}>
+                    Active Bills
+                </button>
+                <button
+                    onClick={() => setActiveTab('RECYCLED')}
+                    style={{
+                        background: 'none', border: 'none', padding: '8px 16px', cursor: 'pointer',
+                        fontWeight: activeTab === 'RECYCLED' ? 'bold' : 'normal',
+                        color: activeTab === 'RECYCLED' ? '#ef4444' : '#64748b',
+                        borderBottom: activeTab === 'RECYCLED' ? '2px solid #ef4444' : 'none',
+                        display: 'flex', alignItems: 'center', gap: '5px'
+                    }}>
+                    <Trash2 size={16} /> Recycle Bin
+                </button>
+            </div>
+
             {/* Content */}
             <div className="glass-card table-wrapper">
                 <div className="table-container">
@@ -193,7 +273,7 @@ function BillList({ onBack }) {
                                             )}
                                         </td>
                                         <td className="truncate-cell" title={bill.items}>
-                                            {bill.items && bill.items.length > 30 ? bill.items.substring(0, 30) + "..." : bill.items}
+                                            {formatBillItems(bill)}
                                         </td>
                                         <td className="font-bold">₹{bill.amount}</td>
                                         <td>{bill.paymentMode}</td>
@@ -205,18 +285,44 @@ function BillList({ onBack }) {
                                             </span>
                                         </td>
                                         <td>
-                                            <button className="icon-btn" title="View Receipt" onClick={() => setSelectedBill(bill)}>
-                                                <Eye size={18} />
-                                            </button>
-                                        </td>
-                                        <td>
-                                            {bill.customer && (!bill.billNumber?.startsWith('ORD-') || bill.paymentMode === 'KHATHA') && (
-                                                <button className="icon-btn" title="Edit Bill" onClick={() => setEditingBill(bill)}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                        ✏️ Edit
-                                                    </div>
-                                                </button>
-                                            )}
+                                            <div style={{ display: 'flex', gap: 5 }}>
+                                                {activeTab === 'ACTIVE' && (
+                                                    <>
+                                                        <button className="icon-btn" title="View Receipt" onClick={() => setSelectedBill(bill)}>
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        {bill.customer && (
+                                                            <button 
+                                                                className="icon-btn" 
+                                                                title="Share via WhatsApp" 
+                                                                onClick={() => openWhatsApp('bill', bill.id)}
+                                                                style={{ color: '#25d366' }}
+                                                            >
+                                                                <MessageCircle size={18} />
+                                                            </button>
+                                                        )}
+                                                        {bill.customer && (!bill.billNumber?.startsWith('ORD-') || bill.paymentMode === 'KHATHA') && (
+                                                            <button className="icon-btn" title="Edit Bill" onClick={() => setEditingBill(bill)}>
+                                                                ✏️
+                                                            </button>
+                                                        )}
+                                                        <button className="icon-btn" title="Delete Bill" onClick={() => handleDelete(bill.id)} style={{ color: '#ef4444' }}>
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                {activeTab === 'RECYCLED' && (
+                                                    <>
+                                                        <button className="icon-btn" title="Restore" onClick={() => handleRestore(bill.id)} style={{ color: '#2563eb' }}>
+                                                            <RotateCcw size={18} />
+                                                        </button>
+                                                        <button className="icon-btn" title="Permanent Delete" onClick={() => handlePermanentDelete(bill.id)} style={{ color: '#ef4444' }}>
+                                                            <X size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -241,6 +347,12 @@ function BillList({ onBack }) {
                                 </div>
 
                                 <div className="mobile-card-row">
+                                    <span className="mobile-card-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                        {formatBillItems(bill)}
+                                    </span>
+                                </div>
+
+                                <div className="mobile-card-row">
                                     <span style={{ fontWeight: 'bold' }}>
                                         {bill.customer ? bill.customer.name : "Walk-in"}
                                     </span>
@@ -257,21 +369,60 @@ function BillList({ onBack }) {
                                 </div>
 
                                 <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-                                    <button
-                                        className="btn-view"
-                                        style={{ flex: 1, padding: '8px', fontSize: '12px' }}
-                                        onClick={() => setSelectedBill(bill)}
-                                    >
-                                        View Bill
-                                    </button>
-                                    {bill.customer && (!bill.billNumber?.startsWith('ORD-') || bill.paymentMode === 'KHATHA') && (
-                                        <button
-                                            className="btn-view"
-                                            style={{ flex: 1, padding: '8px', fontSize: '12px', background: '#f1f5f9', color: '#475569' }}
-                                            onClick={() => setEditingBill(bill)}
-                                        >
-                                            Edit
-                                        </button>
+                                    {activeTab === 'ACTIVE' && (
+                                        <>
+                                            <button
+                                                className="btn-view"
+                                                style={{ flex: 1, padding: '8px', fontSize: '12px' }}
+                                                onClick={() => setSelectedBill(bill)}
+                                            >
+                                                View
+                                            </button>
+                                            {bill.customer && (
+                                                <button
+                                                    className="btn-view"
+                                                    style={{ flex: 1, padding: '8px', fontSize: '12px', background: '#dcfce7', color: '#166534' }}
+                                                    onClick={() => openWhatsApp('bill', bill.id)}
+                                                >
+                                                    WhatsApp
+                                                </button>
+                                            )}
+                                            {bill.customer && (!bill.billNumber?.startsWith('ORD-') || bill.paymentMode === 'KHATHA') && (
+                                                <button
+                                                    className="btn-view"
+                                                    style={{ flex: 1, padding: '8px', fontSize: '12px', background: '#f1f5f9', color: '#475569' }}
+                                                    onClick={() => setEditingBill(bill)}
+                                                >
+                                                    Edit
+                                                </button>
+                                            )}
+                                            <button
+                                                className="btn-view"
+                                                style={{ flex: 1, padding: '8px', fontSize: '12px', background: '#fef2f2', color: '#ef4444' }}
+                                                onClick={() => handleDelete(bill.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {activeTab === 'RECYCLED' && (
+                                        <>
+                                            <button
+                                                className="btn-view"
+                                                style={{ flex: 1, padding: '8px', fontSize: '12px', background: '#eff6ff', color: '#2563eb' }}
+                                                onClick={() => handleRestore(bill.id)}
+                                            >
+                                                Restore
+                                            </button>
+                                            <button
+                                                className="btn-view"
+                                                style={{ flex: 1, padding: '8px', fontSize: '12px', background: '#fef2f2', color: '#ef4444' }}
+                                                onClick={() => handlePermanentDelete(bill.id)}
+                                            >
+                                                Force Delete
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>

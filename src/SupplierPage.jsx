@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getSuppliers, createSupplier, updateSupplier, deleteSupplier, getSupplierTransactions, addSupplierTransaction } from "./api/supplierApi";
 import { Truck, Plus, Pencil, Trash2, X, Phone, Mail, MapPin, Package, Building2, StickyNote, ChevronLeft, CreditCard, DollarSign, Minus, Upload } from "lucide-react";
+import PhoneLink from "./components/PhoneLink";
 import "./SupplierPage.css";
 
 const emptyForm = {
@@ -202,7 +203,8 @@ function SupplierPage({ onBack }) {
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "8px" }}>
                                     {s.phone && (
                                         <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px", color: "#374151" }}>
-                                            <Phone size={13} color="#6b7280" /> {s.phone}
+                                            <Phone size={13} color="#6b7280" />
+                                            <PhoneLink phone={s.phone} showIcon={false} />
                                         </span>
                                     )}
                                     {/* ... Other details ... */}

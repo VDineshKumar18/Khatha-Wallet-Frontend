@@ -6,6 +6,7 @@ import CustomerSidebar from "./CustomerSidebar";
 import axiosClient from "./api/axiosClient";
 import { toast } from "react-toastify"; // ✅ Use react-toastify
 import "./CustomerApp.css";
+import logoIcon from "./assets/landing/logo_icon.svg";
 
 // ✅ LAZY LOAD SUB-COMPONENTS
 const CustomerMarketplace = lazy(() => import("./CustomerMarketplace"));
@@ -16,7 +17,7 @@ const CustomerScheme = lazy(() => import("./CustomerScheme")); // ✅ New Compon
 
 import { useNavigate, useLocation } from "react-router-dom"; // ✅ NEW
 
-function CustomerApp({ onLogout, initialAccounts }) {
+function CustomerApp({ onLogout, initialAccounts, onLoginRequired }) {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -47,7 +48,7 @@ function CustomerApp({ onLogout, initialAccounts }) {
 
         // Default logic
         if (!initialAccounts || (Array.isArray(initialAccounts) && initialAccounts.length === 0) || initialAccounts?.isNewUser) {
-            return "switchShop";
+            return initialAccounts?.isNewUser ? "discoverShops" : "all_products";
         }
         return "products";
     };
@@ -69,6 +70,9 @@ function CustomerApp({ onLogout, initialAccounts }) {
         return null;
     });
 
+    // Guest check
+    const isLoggedIn = selectedAccount && !selectedAccount.isGuest;
+
     // New User Data
     const newUserData = (initialAccounts && initialAccounts.isNewUser) ? initialAccounts : null;
 
@@ -82,7 +86,29 @@ function CustomerApp({ onLogout, initialAccounts }) {
         }
     }, [location.pathname]);
 
+    // Sync initialAccounts prop with state
+    useEffect(() => {
+        if (Array.isArray(initialAccounts) && initialAccounts.length > 0) {
+            setAccounts(initialAccounts);
+            
+            // Auto-select the first account if we don't have one, or if the current one is guest
+            const storedRetailer = JSON.parse(sessionStorage.getItem("customer_retailer") || "null");
+            if (storedRetailer && !storedRetailer.isGuest) {
+                setSelectedAccount(storedRetailer);
+            } else {
+                setSelectedAccount(initialAccounts[0]);
+                sessionStorage.setItem("customer_retailer", JSON.stringify(initialAccounts[0]));
+            }
+        }
+    }, [initialAccounts]);
+
     const handleViewChange = (view) => {
+        const restrictedViews = ['orders', 'profile', 'scheme', 'switchShop'];
+        if (restrictedViews.includes(view) && !isLoggedIn) {
+            toast.info("Please login to access this feature.");
+            onLoginRequired();
+            return;
+        }
         navigate(getPathFromView(view));
     };
 
@@ -103,7 +129,14 @@ function CustomerApp({ onLogout, initialAccounts }) {
 
     // Data State
     const [products, setProducts] = useState([]);
-    const [cart, setCart] = useState({});
+    const [cart, setCart] = useState(() => {
+        const stored = sessionStorage.getItem("customer_cart");
+        return stored ? JSON.parse(stored) : {};
+    });
+
+    useEffect(() => {
+        sessionStorage.setItem("customer_cart", JSON.stringify(cart));
+    }, [cart]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -127,6 +160,7 @@ function CustomerApp({ onLogout, initialAccounts }) {
     };
 
     const loadOrders = async () => {
+        if (!selectedAccount || selectedAccount.isGuest) return;
         try {
             const res = await axiosClient.get(`/orders/customer/${selectedAccount.customerId}`);
             setOrders(res.data || []);
@@ -175,6 +209,16 @@ function CustomerApp({ onLogout, initialAccounts }) {
     };
 
     const selectShop = (account) => {
+        setAccounts((prev) => {
+            const current = Array.isArray(prev) ? prev : [];
+            const exists = current.find((a) => a.retailerId === account.retailerId);
+            if (!exists) {
+                const updated = [...current, account];
+                sessionStorage.setItem("customer_accounts", JSON.stringify(updated));
+                return updated;
+            }
+            return current;
+        });
         sessionStorage.setItem("customer_retailer", JSON.stringify(account));
         setSelectedAccount(account);
         handleViewChange("products"); // Go to products after selection
@@ -212,7 +256,10 @@ function CustomerApp({ onLogout, initialAccounts }) {
                     <button className="icon-btn" onClick={() => setSidebarOpen(true)} aria-label="Open Navigation Menu">
                         <Menu size={22} />
                     </button>
-                    <div className="mobile-logo-text">Khatha<span>Wallet</span></div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <img src={logoIcon} alt="Logo" style={{ height: "30px", width: "auto" }} />
+                        <div className="mobile-logo-text">Khatha<span>Wallet</span></div>
+                    </div>
                 </div>
                 <div className="mobile-header-right">
                     <button className="icon-btn profile-pill" onClick={() => handleViewChange('profile')} aria-label="Go to My Profile">
@@ -228,6 +275,8 @@ function CustomerApp({ onLogout, initialAccounts }) {
                     setActiveView={handleViewChange}
                     onLogout={handleLogout}
                     cartCount={Object.values(cart).reduce((s, i) => s + i.qty, 0)}
+                    isLoggedIn={isLoggedIn}
+                    onLoginRequired={onLoginRequired}
                 />
             </div>
 
@@ -311,9 +360,6 @@ function CustomerApp({ onLogout, initialAccounts }) {
                         <div className="premium-hero-banner">
                             <div className="hero-content">
                                 <h2 className="fade-in">Welcome Back 👋</h2>
-                                <p className="retailer-name-banner">
-                                    Shopping at <span className="shop-pill">{selectedAccount?.retailerName}</span>
-                                </p>
                             </div>
                             <div className="hero-visual">
                                 <div className="floating-blob"></div>
@@ -329,6 +375,8 @@ function CustomerApp({ onLogout, initialAccounts }) {
                                 cart={cart}
                                 addToCart={addToCart}
                                 removeFromCart={removeFromCart}
+                                retailerName={selectedAccount?.retailerName}
+                                retailerIsVerified={selectedAccount?.retailerIsVerified}
                             />
                         )}
 
@@ -342,13 +390,14 @@ function CustomerApp({ onLogout, initialAccounts }) {
                             />
                         )}
 
-                        {activeView === "cart" && selectedAccount && (
+                        {activeView === "cart" && (
                             <CustomerCart
                                 cart={cart}
                                 account={selectedAccount}
                                 addToCart={addToCart}
                                 removeFromCart={removeFromCart}
                                 clearCart={clearCart}
+                                onLoginRequired={onLoginRequired}
                                 onOrderPlaced={() => {
                                     loadOrders();
                                     handleViewChange("orders");
@@ -357,90 +406,115 @@ function CustomerApp({ onLogout, initialAccounts }) {
                         )}
 
                         {activeView === "orders" && (
-                            <CustomerOrders
-                                orders={orders}
-                                onRefresh={loadOrders}
-                            />
+                            isLoggedIn ? (
+                                <CustomerOrders
+                                    orders={orders}
+                                    onRefresh={loadOrders}
+                                    currentUserId={selectedAccount?.customerId}
+                                />
+                            ) : (
+                                <div className="glass-card login-prompt-card" style={{ textAlign: 'center', padding: '40px', background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(10px)' }}>
+                                    <h3>Login Required</h3>
+                                    <p style={{ color: '#64748b', margin: '10px 0 20px' }}>Please log in to view your orders.</p>
+                                    <button className="primary-btn" style={{ maxWidth: '200px', margin: '0 auto' }} onClick={onLoginRequired}>Login / Sign Up</button>
+                                </div>
+                            )
                         )}
 
-                        {activeView === "profile" && selectedAccount && (
-                            <CustomerProfile customerId={selectedAccount.customerId} />
+                        {activeView === "profile" && (
+                            isLoggedIn && selectedAccount ? (
+                                <CustomerProfile customerId={selectedAccount.customerId} />
+                            ) : (
+                                <div className="glass-card login-prompt-card" style={{ textAlign: 'center', padding: '40px', background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(10px)' }}>
+                                    <h3>Login Required</h3>
+                                    <p style={{ color: '#64748b', margin: '10px 0 20px' }}>Please log in to view your profile.</p>
+                                    <button className="primary-btn" style={{ maxWidth: '200px', margin: '0 auto' }} onClick={onLoginRequired}>Login / Sign Up</button>
+                                </div>
+                            )
                         )}
 
-                        {activeView === "scheme" && selectedAccount && (
-                            <CustomerScheme
-                                customer={selectedAccount}
-                                onEnroll={async (retailerId) => {
-                                    // 1. Check if we already have an account with this retailer
-                                    const existingAccount = accounts.find(a => a.retailerId === retailerId);
+                        {activeView === "scheme" && (
+                            isLoggedIn && selectedAccount ? (
+                                <CustomerScheme
+                                    customer={selectedAccount}
+                                    onEnroll={async (retailerId) => {
+                                        // 1. Check if we already have an account with this retailer
+                                        const existingAccount = accounts.find(a => a.retailerId === retailerId);
 
-                                    let accountToEnroll = existingAccount;
+                                        let accountToEnroll = existingAccount;
 
-                                    if (!existingAccount) {
-                                        // 2. If not, register first
+                                        if (!existingAccount) {
+                                            // 2. If not, register first
+                                            try {
+                                                // Trigger normal shop selection logic to register
+                                                // This is a bit tricky since selectShop just sets state.
+                                                // We need to call the registration API manually here?
+                                                // Actually, simplest is to switch shop to that retailer (which handles registration internally in ShopSelection if we used that)
+                                                // But here we are getting retailerId from ShopSelection.
+
+                                                // Let's rely on a helper or just do it here:
+                                                // We need access to registerCustomer from authApi
+                                                const { registerCustomer } = await import("./api/authApi");
+                                                const res = await registerCustomer({
+                                                    email: selectedAccount.email, // Use current email
+                                                    name: selectedAccount.customerName,
+                                                    phone: selectedAccount.phone || "0000000000",
+                                                    retailerId: retailerId.toString()
+                                                });
+
+                                                accountToEnroll = res[0];
+
+                                                // Update accounts list
+                                                setAccounts(prev => [...prev, accountToEnroll]);
+
+                                            } catch (err) {
+                                                toast.error("Failed to join shop: " + err.message);
+                                                return;
+                                            }
+                                        }
+
+                                        // 3. Enroll in Scheme
                                         try {
-                                            // Trigger normal shop selection logic to register
-                                            // This is a bit tricky since selectShop just sets state.
-                                            // We need to call the registration API manually here?
-                                            // Actually, simplest is to switch shop to that retailer (which handles registration internally in ShopSelection if we used that)
-                                            // But here we are getting retailerId from ShopSelection.
+                                            const { updateCustomerScheme } = await import("./api/customerApi");
 
-                                            // Let's rely on a helper or just do it here:
-                                            // We need access to registerCustomer from authApi
-                                            const { registerCustomer } = await import("./api/authApi");
-                                            const res = await registerCustomer({
-                                                email: selectedAccount.email, // Use current email
-                                                name: selectedAccount.customerName,
-                                                phone: selectedAccount.phone || "0000000000",
-                                                retailerId: retailerId.toString()
+                                            // ✅ USE RETAILER CONFIG for Scheme
+                                            const targetAmount = accountToEnroll.schemeTargetAmount || 6000.0;
+                                            const monthlyAmount = accountToEnroll.schemeMonthlyAmount || 500.0;
+
+                                            await updateCustomerScheme(accountToEnroll.customerId, {
+                                                isSchemeActive: true,
+                                                schemeStartDate: new Date().toISOString().split('T')[0],
+                                                schemeMonthlyAmount: monthlyAmount,
+                                                schemeTargetAmount: targetAmount,
+                                                schemeCollectedAmount: 0.0,
+                                                schemeMonthsPaid: 0
                                             });
 
-                                            accountToEnroll = res[0];
+                                            toast.success("Successfully enrolled in Savings Scheme!");
 
-                                            // Update accounts list
-                                            setAccounts(prev => [...prev, accountToEnroll]);
+                                            // 4. Switch to that shop and show scheme
+                                            selectShop({
+                                                ...accountToEnroll,
+                                                isSchemeActive: true,
+                                                schemeCollectedAmount: 0.0,
+                                                schemeTargetAmount: targetAmount,
+                                                schemeMonthlyAmount: monthlyAmount, // Ensure state has this
+                                                schemeMonthsPaid: 0
+                                            });
+                                            handleViewChange("scheme");
 
                                         } catch (err) {
-                                            toast.error("Failed to join shop: " + err.message);
-                                            return;
+                                            toast.error("Enrollment failed: " + err.message);
                                         }
-                                    }
-
-                                    // 3. Enroll in Scheme
-                                    try {
-                                        const { updateCustomerScheme } = await import("./api/customerApi");
-
-                                        // ✅ USE RETAILER CONFIG for Scheme
-                                        const targetAmount = accountToEnroll.schemeTargetAmount || 6000.0;
-                                        const monthlyAmount = accountToEnroll.schemeMonthlyAmount || 500.0;
-
-                                        await updateCustomerScheme(accountToEnroll.customerId, {
-                                            isSchemeActive: true,
-                                            schemeStartDate: new Date().toISOString().split('T')[0],
-                                            schemeMonthlyAmount: monthlyAmount,
-                                            schemeTargetAmount: targetAmount,
-                                            schemeCollectedAmount: 0.0,
-                                            schemeMonthsPaid: 0
-                                        });
-
-                                        toast.success("Successfully enrolled in Savings Scheme!");
-
-                                        // 4. Switch to that shop and show scheme
-                                        selectShop({
-                                            ...accountToEnroll,
-                                            isSchemeActive: true,
-                                            schemeCollectedAmount: 0.0,
-                                            schemeTargetAmount: targetAmount,
-                                            schemeMonthlyAmount: monthlyAmount, // Ensure state has this
-                                            schemeMonthsPaid: 0
-                                        });
-                                        handleViewChange("scheme");
-
-                                    } catch (err) {
-                                        toast.error("Enrollment failed: " + err.message);
-                                    }
-                                }}
-                            />
+                                    }}
+                                />
+                            ) : (
+                                <div className="glass-card login-prompt-card" style={{ textAlign: 'center', padding: '40px', background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(10px)' }}>
+                                    <h3>Login Required</h3>
+                                    <p style={{ color: '#64748b', margin: '10px 0 20px' }}>Please log in to view and enroll in savings schemes.</p>
+                                    <button className="primary-btn" style={{ maxWidth: '200px', margin: '0 auto' }} onClick={onLoginRequired}>Login / Sign Up</button>
+                                </div>
+                            )
                         )}
 
                         {activeView === "switchShop" && (
@@ -449,7 +523,7 @@ function CustomerApp({ onLogout, initialAccounts }) {
                                 onSelectShop={selectShop}
                                 isModal={false}
                                 isRegistration={false}
-                                newCustomerData={null}
+                                newCustomerData={newUserData}
                             />
                         )}
 
@@ -459,7 +533,7 @@ function CustomerApp({ onLogout, initialAccounts }) {
                                 onSelectShop={selectShop}
                                 isModal={false}
                                 isRegistration={true}
-                                newCustomerData={null}
+                                newCustomerData={newUserData}
                             />
                         )}
                     </Suspense>

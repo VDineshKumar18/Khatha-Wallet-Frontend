@@ -4,7 +4,7 @@ import MobileScanner from "./MobileScanner";
 import { toast } from "react-toastify";
 import {
   ArrowLeft, Search, Plus, Trash2, Edit2,
-  Package, ScanBarcode, ChevronLeft, ChevronRight, Filter, Printer, ChevronUp, AlertTriangle, XCircle, CheckCircle, FilePlus, Image
+  Package, ScanBarcode, ChevronLeft, ChevronRight, Filter, Printer, ChevronUp, AlertTriangle, XCircle, CheckCircle, FilePlus, Image, Download
 } from "lucide-react";
 import Barcode from "react-barcode";
 import { createRoot } from "react-dom/client";
@@ -64,7 +64,7 @@ function Products({ onBack }) {
 
   const loadProducts = async () => {
     const res = await axiosClient.get("/products", {
-      params: { retailerId }
+      params: { retailerId, includeAllStatuses: true }
     });
     setProducts(res.data || []);
   };
@@ -76,6 +76,31 @@ function Products({ onBack }) {
   }, []);
 
   const [isScanning, setIsScanning] = useState(false);
+
+  const handleExport = () => {
+    const csvRows = [];
+    csvRows.push(["Name", "Category", "Price", "Stock", "Type", "Barcode"]);
+
+    products.forEach(p => {
+      csvRows.push([
+        `"${(p.name || "").replace(/"/g, '""')}"`,
+        p.category,
+        p.price,
+        p.quantity,
+        p.productType,
+        `"${p.barcode || ""}"`
+      ]);
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "products_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // ✅ IMAGE COMPRESSION LOGIC
   const compressImage = (file) => {
@@ -467,6 +492,16 @@ function Products({ onBack }) {
             title="Scan Barcode"
           >
             <ScanBarcode size={18} />
+          </button>
+
+          <button
+            className="btn secondary"
+            onClick={handleExport}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            title="Export to Excel"
+          >
+            <Download size={18} />
+            <span className="desktop-only">Excel</span>
           </button>
 
           <button
@@ -933,7 +968,24 @@ function ProductRow({ product, onAddStock, onDelete, onPrint }) { // ✅ Receive
           )}
         </div>
       </td>
-      <td>{product.name}</td>
+      <td>
+        <div style={{ fontWeight: 600 }}>{product.name}</div>
+        {product.approvalStatus && product.approvalStatus !== 'APPROVED' && (
+          <span style={{ 
+            fontSize: '9px', 
+            fontWeight: 800, 
+            padding: '2px 6px', 
+            borderRadius: '4px', 
+            marginTop: '4px', 
+            display: 'inline-block',
+            background: product.approvalStatus === 'PENDING' ? '#fef3c7' : '#fee2e2',
+            color: product.approvalStatus === 'PENDING' ? '#b45309' : '#b91c1c',
+            border: product.approvalStatus === 'PENDING' ? '1px solid #fde68a' : '1px solid #fca5a5'
+          }}>
+            {product.approvalStatus === 'PENDING' ? 'PENDING APPROVAL' : 'REJECTED BY ADMIN'}
+          </span>
+        )}
+      </td>
 
       <td>
         {editing ? (
@@ -1136,7 +1188,22 @@ function MobileProductCard({ product, onAddStock, onDelete, onPrint, onEdit, LOW
       <div className="card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="card-title" style={{ color: '#1e293b', fontWeight: 700, fontSize: '14px' }}>{product.name}</div>
-          <span className="status-pill pill-info" style={{ fontSize: '9px', marginTop: '2px' }}>{product.category.replace("_", " ")}</span>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
+            <span className="status-pill pill-info" style={{ fontSize: '9px', margin: 0 }}>{product.category.replace("_", " ")}</span>
+            {product.approvalStatus && product.approvalStatus !== 'APPROVED' && (
+              <span style={{ 
+                fontSize: '8px', 
+                fontWeight: 800, 
+                padding: '1px 5px', 
+                borderRadius: '4px', 
+                background: product.approvalStatus === 'PENDING' ? '#fef3c7' : '#fee2e2',
+                color: product.approvalStatus === 'PENDING' ? '#b45309' : '#b91c1c',
+                border: product.approvalStatus === 'PENDING' ? '1px solid #fde68a' : '1px solid #fca5a5'
+              }}>
+                {product.approvalStatus === 'PENDING' ? 'PENDING' : 'REJECTED'}
+              </span>
+            )}
+          </div>
         </div>
         <div className="card-top-right" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <div className="card-price" style={{ color: 'hsl(var(--primary-h), var(--primary-s), var(--primary-l))', fontWeight: 700 }}>₹ {product.price}</div>

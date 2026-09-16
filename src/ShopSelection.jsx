@@ -97,24 +97,41 @@ function ShopSelection({ accounts, onSelectShop, onBack, isModal = true, isRegis
         // ... (existing registration logic) ...
         try {
             setLoading(true);
-            // If we have newCustomerData (from initial login), use it. 
-            // BUT if we are adding a shop from dashboard, we might need current user's profile?
-            // For now simplest fallback:
-            const email = newCustomerData?.email || sessionStorage.getItem("retailerEmail"); // actually store customer email too?
-            // Actually, we need to know WHO is joining.
-            // If newCustomerData is null, it means we are an existing user adding a shop.
-            // We need to implement strict "Join Shop for Existing User" flow. 
-            // For now, let's assume newCustomerData is present OR we alert user.
 
-            if (!newCustomerData && !email) {
-                toast.error("Please login again to join a new shop.");
+            // Fetch existing customer info from sessionStorage if we don't have newCustomerData
+            let existingCustomer = null;
+            if (!newCustomerData) {
+                const storedAccounts = sessionStorage.getItem("customer_accounts");
+                if (storedAccounts) {
+                    try {
+                        const parsed = JSON.parse(storedAccounts);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            existingCustomer = parsed[0]; // grab profile from any existing account
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse existing accounts", e);
+                    }
+                }
+            }
+
+            const email = newCustomerData?.email || existingCustomer?.email;
+            const name = newCustomerData?.name || existingCustomer?.name || existingCustomer?.customerName || "Customer";
+            const phone = newCustomerData?.phone || existingCustomer?.phone || existingCustomer?.customerPhone;
+
+            if (!email || !phone) {
+                const selectedShopObj = shops.find(s => s.retailerId === retailerId);
+                onSelectShop({
+                    retailerId: retailerId,
+                    retailerName: selectedShopObj?.shopName || selectedShopObj?.retailerName || selectedShopObj?.name || "Shop",
+                    isGuest: true
+                });
                 return;
             }
 
             const res = await registerCustomer({
                 email: email,
-                name: newCustomerData?.name || "Customer", // Fallback
-                phone: newCustomerData?.phone || "0000000000",
+                name: name,
+                phone: phone,
                 retailerId: retailerId.toString()
             });
 
@@ -239,8 +256,15 @@ function ShopSelection({ accounts, onSelectShop, onBack, isModal = true, isRegis
                         }}
                     >
                         <div>
-                            <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#1e293b", fontWeight: 600 }}>
-                                🏪 {acc.shopName || acc.retailerName || acc.name}
+                            <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#1e293b", fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>🏪 {acc.shopName || acc.retailerName || acc.name}</span>
+                                {(acc.isVerified || acc.retailerIsVerified) && (
+                                    <span title="Verified by Khatha Wallet" style={{ fontSize: '1rem', display: 'flex' }}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#3b82f6" />
+                                        </svg>
+                                    </span>
+                                )}
                             </h3>
                             {acc.shopName && (
                                 <p style={{ margin: "2px 0", color: "#64748b", fontSize: "0.8rem" }}>

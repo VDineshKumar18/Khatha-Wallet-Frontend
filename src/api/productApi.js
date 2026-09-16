@@ -2,7 +2,7 @@ import axiosClient from "./axiosClient";
 
 /* GET PRODUCTS */
 export const getProducts = (retailerId) =>
-  axiosClient.get(`/products?retailerId=${retailerId}`);
+  axiosClient.get(`/products?retailerId=${retailerId}&includeAllStatuses=true`);
 
 // ✅ GET ALL PRODUCTS (GLOBAL / NEARBY)
 export const getAllProducts = (location = null) => {

@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, MessageCircle } from "lucide-react";
 import { notifyCustomer } from "./api/notificationApi";
-import { updateCustomerEmail, deleteCustomer } from "./api/customerApi";
+import { updateCustomerEmail, updateCustomerPhone, deleteCustomer } from "./api/customerApi";
 import { toast } from "react-toastify"; // ✅ Use react-toastify
+import { openWhatsApp } from "./utils/whatsappUtils";
 
 function CustomerList({ customers = [], onBack, onSelectCustomer, title }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sendingId, setSendingId] = useState(null);
   const [editingCustomerId, setEditingCustomerId] = useState(null);
+  const [editingPhoneId, setEditingPhoneId] = useState(null);
   const [emailInput, setEmailInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
 
   // ✅ SAFE FILTER (NO CRASH)
   const safeCustomers = Array.isArray(customers) ? customers : [];
@@ -51,6 +54,23 @@ function CustomerList({ customers = [], onBack, onSelectCustomer, title }) {
       setEmailInput("");
     } catch {
       toast.error("Failed to update email");
+    }
+  };
+
+  /* ================= UPDATE PHONE ================= */
+  const handleUpdatePhone = async (customerId) => {
+    if (!phoneInput.trim()) return;
+
+    try {
+      await updateCustomerPhone(customerId, phoneInput.trim());
+      toast.success("Phone number updated successfully");
+      setEditingPhoneId(null);
+      setPhoneInput("");
+      
+      // Reload to reflect changes (or trigger parent refresh)
+      setTimeout(() => window.location.reload(), 1000); 
+    } catch {
+      toast.error("Failed to update phone number");
     }
   };
 
@@ -194,20 +214,48 @@ function CustomerList({ customers = [], onBack, onSelectCustomer, title }) {
 
                     <td>
                       {c.dueAmount > 0 && !isSchemeView ? (
-                        <button
-                          className="btn-notify"
-                          disabled={sendingId === c.id}
-                          onClick={() => handleNotify(c)}
-                        >
-                          {sendingId === c.id ? "Sending..." : "Notify"}
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            className="btn-notify"
+                            disabled={sendingId === c.id}
+                            onClick={() => handleNotify(c)}
+                            style={{ flex: 1 }}
+                          >
+                            {sendingId === c.id ? "Sending..." : "Notify"}
+                          </button>
+                          <button
+                            onClick={() => openWhatsApp('due', c.id)}
+                            title="Notify via WhatsApp"
+                            style={{
+                              padding: '6px 10px', background: '#25d366', color: 'white', 
+                              border: 'none', borderRadius: '6px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}
+                          >
+                            <MessageCircle size={16} />
+                          </button>
+                        </div>
                       ) : isSchemeView ? (
-                        <button
-                          className="btn-notify"
-                          onClick={() => handleNotify(c)}
-                        >
-                          Notify
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            className="btn-notify"
+                            onClick={() => handleNotify(c)}
+                            style={{ flex: 1 }}
+                          >
+                            Notify
+                          </button>
+                          <button
+                            onClick={() => openWhatsApp('scheme', c.id)}
+                            title="Notify via WhatsApp"
+                            style={{
+                              padding: '6px 10px', background: '#25d366', color: 'white', 
+                              border: 'none', borderRadius: '6px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}
+                          >
+                            <MessageCircle size={16} />
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-muted">-</span>
                       )}
@@ -221,6 +269,31 @@ function CustomerList({ customers = [], onBack, onSelectCustomer, title }) {
                         >
                           View
                         </button>
+
+                        {!c.phone && editingPhoneId !== c.id && (
+                          <button
+                            className="btn primary small"
+                            style={{ background: '#25d366', borderColor: '#25d366' }}
+                            onClick={() => {
+                              setEditingPhoneId(c.id);
+                              setPhoneInput("");
+                            }}
+                          >
+                            Add Phone
+                          </button>
+                        )}
+
+                        {editingPhoneId === c.id && (
+                           <div className="row" style={{ gap: '4px' }}>
+                             <input
+                               placeholder="Phone..."
+                               value={phoneInput}
+                               style={{ width: '100px', fontSize: '12px', padding: '4px' }}
+                               onChange={(e) => setPhoneInput(e.target.value)}
+                             />
+                             <button className="btn primary small" onClick={() => handleUpdatePhone(c.id)}>Save</button>
+                           </div>
+                        )}
 
                         <button
                           className="btn-delete"
@@ -300,14 +373,26 @@ function CustomerList({ customers = [], onBack, onSelectCustomer, title }) {
               {/* Row 3: Actions */}
               <div className="mobile-card-actions">
                 {c.dueAmount > 0 && (
-                  <button
-                    className="btn-notify"
-                    style={{ flex: 1, height: '44px' }}
-                    disabled={sendingId === c.id}
-                    onClick={() => handleNotify(c)}
-                  >
-                    {sendingId === c.id ? "Sending..." : "Notify"}
-                  </button>
+                  <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn-notify"
+                      style={{ flex: 1, height: '44px' }}
+                      disabled={sendingId === c.id}
+                      onClick={() => handleNotify(c)}
+                    >
+                      {sendingId === c.id ? "Sending..." : "Notify"}
+                    </button>
+                    <button
+                      onClick={() => openWhatsApp('due', c.id)}
+                      style={{
+                        padding: '0 12px', background: '#25d366', color: 'white', 
+                        border: 'none', borderRadius: '8px', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                    >
+                      <MessageCircle size={20} />
+                    </button>
+                  </div>
                 )}
 
                 <button
@@ -329,6 +414,33 @@ function CustomerList({ customers = [], onBack, onSelectCustomer, title }) {
                   >
                     📧
                   </button>
+                )}
+
+                {!c.phone && editingPhoneId !== c.id && (
+                  <button
+                    className="icon-btn"
+                    title="Update Phone"
+                    style={{ background: '#25d366', color: 'white' }}
+                    onClick={() => {
+                      setEditingPhoneId(c.id);
+                      setPhoneInput("");
+                    }}
+                  >
+                    📱
+                  </button>
+                )}
+
+                {editingPhoneId === c.id && (
+                   <div style={{ display: 'flex', gap: '4px', width: '100%', marginTop: '8px' }}>
+                     <input
+                       placeholder="Enter Phone"
+                       value={phoneInput}
+                       autoFocus
+                       style={{ flex: 1, fontSize: '13px' }}
+                       onChange={(e) => setPhoneInput(e.target.value)}
+                     />
+                     <button className="btn primary small" onClick={() => handleUpdatePhone(c.id)}>Save</button>
+                   </div>
                 )}
               </div>
             </div>

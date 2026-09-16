@@ -1,7 +1,8 @@
 
 import { useState } from "react";
-import { ArrowLeft, Calendar, CheckCircle, Plus, X, Upload } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle, Plus, X, Upload, MessageCircle } from "lucide-react";
 import { toast } from "react-toastify";
+import { openWhatsApp } from "./utils/whatsappUtils";
 import { createBill, uploadBillImage } from "./api/billApi"; // ✅ API Imports
 
 function SchemeDetails({ customer, bills = [], onBack, refreshBills }) {
@@ -36,7 +37,7 @@ function SchemeDetails({ customer, bills = [], onBack, refreshBills }) {
                 paidAmount: Number(paymentForm.amount), // Scheme is fully paid deposit
                 paymentMode: paymentForm.note || "SCHEME_DEPOSIT",
                 items: "Monthly Savings Deposit",
-                billDate: paymentForm.date,
+                billDate: new Date(paymentForm.date).toISOString(),
             });
 
             // 2. Upload Image if exists
@@ -76,8 +77,19 @@ function SchemeDetails({ customer, bills = [], onBack, refreshBills }) {
                         <h1 style={{ fontSize: "24px", color: "#1e293b", margin: "0 0 8px 0" }}>
                             Monthly Savings Scheme 🐷
                         </h1>
-                        <p style={{ color: "#64748b", fontSize: "16px" }}>
+                        <p style={{ color: "#64748b", fontSize: "16px", display: 'flex', alignItems: 'center', gap: '8px' }}>
                             Member: <strong style={{ color: "#0f172a" }}>{customer.name}</strong> • Phone: {customer.phone}
+                            <button 
+                                onClick={() => openWhatsApp('scheme', customer.id)}
+                                title="Send WhatsApp Reminder"
+                                style={{
+                                    background: "#25d366", color: "white", border: "none",
+                                    padding: "4px 8px", borderRadius: "6px", cursor: "pointer",
+                                    display: "flex", alignItems: "center", justifyContent: "center"
+                                }}
+                            >
+                                <MessageCircle size={14} />
+                            </button>
                         </p>
                     </div>
 

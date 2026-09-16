@@ -81,3 +81,34 @@ export const getAllBills = () => {
     },
   });
 };
+
+/**
+ * ✅ RECYCLE BIN OPs
+ */
+export const getRecycledBills = () => {
+  const retailerId = sessionStorage.getItem("retailerId");
+  return axiosClient.get("/bills/recycled", {
+    headers: { "X-Retailer-Id": retailerId },
+  });
+};
+
+export const deleteBill = (id) => {
+  const retailerId = sessionStorage.getItem("retailerId");
+  return axiosClient.delete(`/bills/${id}`, {
+    headers: { "X-Retailer-Id": retailerId },
+  });
+};
+
+export const restoreBill = (id) => {
+  const retailerId = sessionStorage.getItem("retailerId");
+  return axiosClient.put(`/bills/${id}/restore`, {}, {
+    headers: { "X-Retailer-Id": retailerId },
+  });
+};
+
+export const permanentDeleteBill = (id) => {
+  const retailerId = sessionStorage.getItem("retailerId");
+  return axiosClient.delete(`/bills/${id}/permanent`, {
+    headers: { "X-Retailer-Id": retailerId },
+  });
+};

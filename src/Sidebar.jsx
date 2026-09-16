@@ -12,7 +12,7 @@ import {
   FilePlus,
 } from "lucide-react";
 
-import logoImg from "./assets/landing/logo_new.png";
+import logoImg from "./assets/landing/logo.svg";
 import "./Sidebar.css";
 
 function Sidebar({

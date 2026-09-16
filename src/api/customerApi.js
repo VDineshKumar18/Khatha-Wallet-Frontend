@@ -38,6 +38,11 @@ export const updateCustomerEmail = (id, email) =>
     params: { email },
   });
 
+export const updateCustomerPhone = (id, phone) =>
+  axiosClient.put(`/customers/${id}/phone`, null, {
+    params: { phone },
+  });
+
 export const deleteCustomer = async (id) => {
   const retailerId = sessionStorage.getItem("retailerId");
 

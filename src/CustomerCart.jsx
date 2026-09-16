@@ -2,17 +2,19 @@ import { useState } from "react";
 import axiosClient from "./api/axiosClient";
 import { Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
 import { toast } from "react-toastify"; // ✅ Import react-toastify
+import PaymentGatewayModal from "./components/PaymentGatewayModal";
 import "./CustomerApp.css";
 
-function CustomerCart({ cart, account, addToCart, removeFromCart, clearCart, onOrderPlaced }) {
+function CustomerCart({ cart, account, addToCart, removeFromCart, clearCart, onOrderPlaced, onLoginRequired }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [paymentMode, setPaymentMode] = useState("COD"); // ✅ Payment State
+    const [showGateway, setShowGateway] = useState(false);
 
     const cartItems = Object.values(cart);
     const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-    const placeOrder = async () => {
+    const placeOrder = async (gatewayTxnRef = null) => {
         if (cartItems.length === 0) return;
 
         // 1. Group items by Retailer ID
@@ -57,7 +59,8 @@ function CustomerCart({ cart, account, addToCart, removeFromCart, clearCart, onO
                     retailerId: group.retailerId,
                     items: itemsJson, // ✅ USE THE JSON STRING
                     totalAmount: group.total,
-                    paymentMode: paymentMode // ✅ Send Payment Mode
+                    paymentMode: paymentMode, // ✅ Send Payment Mode
+                    gatewayTransactionRef: gatewayTxnRef // ✅ Send Gateway Transaction Ref
                 });
             });
 
@@ -148,6 +151,13 @@ function CustomerCart({ cart, account, addToCart, removeFromCart, clearCart, onO
                         <span>UPI Payment</span>
                     </div>
                     <div
+                        className={`payment-tile ${paymentMode === "CARD" ? 'active' : ''}`}
+                        onClick={() => setPaymentMode("CARD")}
+                    >
+                        <span style={{ fontSize: '24px' }}>💳</span>
+                        <span>Card Payment</span>
+                    </div>
+                    <div
                         className={`payment-tile ${paymentMode === "KHATHA" ? 'active' : ''}`}
                         onClick={() => setPaymentMode("KHATHA")}
                     >
@@ -161,10 +171,7 @@ function CustomerCart({ cart, account, addToCart, removeFromCart, clearCart, onO
                         <span>Item Total</span>
                         <span>₹ {cartTotal}</span>
                     </div>
-                    <div className="bill-row">
-                        <span>Delivery Fee</span>
-                        <span style={{ color: '#00b259', fontWeight: 700 }}>FREE</span>
-                    </div>
+
                     <div className="bill-row total">
                         <span>Grand Total</span>
                         <span>₹ {cartTotal}</span>
@@ -173,14 +180,44 @@ function CustomerCart({ cart, account, addToCart, removeFromCart, clearCart, onO
 
                 {error && <p className="error-text" style={{ color: '#ef4444', fontSize: '13px', marginTop: '10px' }}>{error}</p>}
 
-                <button
-                    className="checkout-btn"
-                    onClick={placeOrder}
-                    disabled={loading}
-                >
-                    {loading ? "Confirming Order..." : `Place Order • ₹${cartTotal}`}
-                </button>
+                {!account || account.isGuest ? (
+                    <button
+                        className="checkout-btn"
+                        onClick={onLoginRequired}
+                        style={{ background: '#2563eb' }}
+                    >
+                        Login to Place Order
+                    </button>
+                ) : (
+                    <button
+                        className="checkout-btn"
+                        onClick={() => {
+                            if (paymentMode === "UPI" || paymentMode === "CARD") {
+                                setShowGateway(true);
+                            } else {
+                                placeOrder(null);
+                            }
+                        }}
+                        disabled={loading}
+                    >
+                        {loading ? "Confirming Order..." : `Place Order • ₹${cartTotal}`}
+                    </button>
+                )}
             </div>
+
+            {showGateway && (
+                <PaymentGatewayModal
+                    amount={cartTotal}
+                    customerName={account.customerName}
+                    customerEmail={account.email}
+                    retailerId={account.retailerId}
+                    onClose={() => setShowGateway(false)}
+                    onSuccess={(txnRef) => {
+                        setShowGateway(false);
+                        placeOrder(txnRef);
+                    }}
+                />
+            )}
         </div>
     );
 }

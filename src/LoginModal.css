@@ -477,7 +477,6 @@ input {
   .login-right-panel {
     padding: 24px;
   }
-
   .login-form-wrapper {
     max-width: 100%;
   }
@@ -485,4 +484,40 @@ input {
   .form-header h2 {
     font-size: 24px;
   }
+}
+
+/* ================= OTP RESEND STYLING ================= */
+.otp-resend-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.otp-timer {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+
+.resend-btn:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.resend-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  text-decoration: none;
 }

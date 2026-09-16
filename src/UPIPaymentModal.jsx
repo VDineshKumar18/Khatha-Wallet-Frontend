@@ -32,7 +32,8 @@ function UPIPaymentModal({ amount, customerName, onClose, onPaymentConfirmed }) 
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [onClose]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     if (!upiId) {
         return (

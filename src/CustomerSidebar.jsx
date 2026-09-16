@@ -9,14 +9,16 @@ import {
     PiggyBank
 } from "lucide-react";
 
-import logoImg from "./assets/landing/logo_new.png";
+import logoImg from "./assets/landing/logo.svg";
 import "./Sidebar.css";
 
 function CustomerSidebar({
     activeView,
     setActiveView,
     onLogout,
-    cartCount
+    cartCount,
+    isLoggedIn,
+    onLoginRequired
 }) {
     return (
         <aside className="sidebar">
@@ -87,10 +89,17 @@ function CustomerSidebar({
 
 
 
-                <button className="logout-btn" onClick={onLogout}>
-                    <LogOut size={16} />
-                    Logout
-                </button>
+                {isLoggedIn ? (
+                    <button className="logout-btn" onClick={onLogout}>
+                        <LogOut size={16} />
+                        Logout
+                    </button>
+                ) : (
+                    <button className="logout-btn" onClick={onLoginRequired} style={{ background: '#2563eb', color: 'white' }}>
+                        <LogOut size={16} />
+                        Login / Sign Up
+                    </button>
+                )}
             </div>
         </aside>
     );

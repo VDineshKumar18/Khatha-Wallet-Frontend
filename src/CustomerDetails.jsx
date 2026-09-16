@@ -6,6 +6,8 @@ import { notifyCustomer } from "./api/notificationApi"; // ✅ Import Notify API
 import { updateCustomerScheme } from "./api/customerApi"; // ✅ Import Scheme API
 import axiosClient from "./api/axiosClient";
 import { createBill, uploadBillImage } from "./api/billApi"; // Also missing imports for these used functions!
+import PhoneLink from "./components/PhoneLink";
+import { openWhatsApp } from "./utils/whatsappUtils";
 import "./CustomerDetails.css";
 
 function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
@@ -136,7 +138,7 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
           paidAmount: 0,
           paymentMode: "KHATHA",
           items: gaveForm.items || "Manual entry",
-          billDate: gaveForm.date,
+          billDate: new Date(gaveForm.date).toISOString(),
         });
 
         // ✅ UPLOAD IMAGE IF SELECTED
@@ -157,7 +159,7 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
           paidAmount: Number(receivedForm.amount), // Scheme is fully paid deposit
           paymentMode: receivedForm.note || "SCHEME_DEPOSIT",
           items: "Monthly Savings Deposit",
-          billDate: receivedForm.date,
+          billDate: new Date(receivedForm.date).toISOString(),
         });
 
         // ✅ UPLOAD IMAGE IF SELECTED
@@ -179,7 +181,7 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
           paidAmount: Number(receivedForm.amount),
           paymentMode: receivedForm.note || "PAYMENT",
           items: receivedForm.note || "Payment received",
-          billDate: receivedForm.date,
+          billDate: new Date(receivedForm.date).toISOString(),
         });
 
         // ✅ UPLOAD IMAGE IF SELECTED
@@ -225,7 +227,7 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
               <div className="profile-meta">
                 <div className="meta-item">
                   <Phone size={14} />
-                  <span>{customer?.phone}</span>
+                  <PhoneLink phone={customer?.phone} showIcon={false} />
                 </div>
                 {customer?.email && (
                   <div className="meta-item">
@@ -238,6 +240,10 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
                 <button className="btn-pill" onClick={handleNotify} disabled={notifying}>
                   <Bell size={14} />
                   {notifying ? "Sending..." : "Loyalty Notify"}
+                </button>
+                <button className="btn-pill" style={{ background: '#25d366', color: 'white', borderColor: '#25d366' }} onClick={() => openWhatsApp('due', customer.id)}>
+                  <MessageCircle size={14} />
+                  WhatsApp
                 </button>
                 <button className="btn-pill" onClick={handlePrint}>
                   <Printer size={14} />
@@ -270,9 +276,22 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
               </p>
             </div>
             {customer.isSchemeActive && (
-              <span style={{ background: '#0ea5e9', color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
-                ACTIVE
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button 
+                  onClick={() => openWhatsApp('scheme', customer.id)}
+                  title="Send WhatsApp Reminder"
+                  style={{
+                    background: "#25d366", color: "white", border: "none",
+                    padding: "4px 12px", borderRadius: "20px", fontSize: "12px", 
+                    fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "4px"
+                  }}
+                >
+                  <MessageCircle size={14} /> WhatsApp
+                </button>
+                <span style={{ background: '#0ea5e9', color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                  ACTIVE
+                </span>
+              </div>
             )}
           </div>
 
@@ -603,7 +622,7 @@ function CustomerDetails({ customer, bills = [], onBack, refreshBills }) {
                 <X size={20} />
               </button>
               <img
-                src={`http://${window.location.hostname}:8084/api/bills/image/${viewingImage}`}
+                src={`http://${window.location.hostname}:8080/api/bills/image/${viewingImage}`}
                 alt="Bill"
                 style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}
                 onError={(e) => {

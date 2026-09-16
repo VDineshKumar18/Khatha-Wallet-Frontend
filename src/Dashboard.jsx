@@ -19,6 +19,8 @@ const SchemeDetails = lazy(() => import("./SchemeDetails"));
 const SyncContactsModal = lazy(() => import("./SyncContactsModal"));
 const SelectContactModal = lazy(() => import("./SelectContactModal"));
 
+import logoIcon from "./assets/landing/logo_icon.svg";
+
 import {
   LineChart,
   Line,
@@ -333,7 +335,10 @@ function Dashboard() {
           <button className="icon-btn" onClick={() => setSidebarOpen(true)}>
             <Menu size={22} />
           </button>
-          <div className="mobile-logo-text">Khatha<span>Wallet</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <img src={logoIcon} alt="Logo" style={{ height: "30px", width: "auto" }} />
+            <div className="mobile-logo-text">Khatha<span>Wallet</span></div>
+          </div>
         </div>
         <div className="mobile-header-right">
           <button className="icon-btn profile-pill" onClick={() => handleViewChange('profile')}>

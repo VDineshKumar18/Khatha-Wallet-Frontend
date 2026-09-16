@@ -1,7 +1,7 @@
 import "./InvoicePreview.css";
-import logoImg from "./assets/landing/logo.png";
+import logoImg from "./assets/landing/logo.svg";
 
-function InvoicePreview({ customer, billItems, total, billNumber, retailerInfo, status, paidAmount, dueAmount, onClose }) {
+function InvoicePreview({ customer, billItems, total, billNumber, retailerInfo, status, paidAmount, dueAmount, paymentMode, gatewayTransactionRef, onClose }) {
   // Calculate subtotal and tax if not provided (default 5% from Billing.jsx)
   const gst = Math.round((total * 5) / 105);
   const subTotal = total - gst;
@@ -108,6 +108,12 @@ function InvoicePreview({ customer, billItems, total, billNumber, retailerInfo, 
         <div className="invoice-footer-grid">
           <div className="footer-left">
             <p className="footer-note">Thank you for your business!</p>
+            {paymentMode && (
+              <div style={{ marginTop: '12px', fontSize: '12px', color: '#475569', lineHeight: '1.6' }}>
+                <div><b>Payment Method:</b> {paymentMode === "ONLINE" ? "Online Gateway (Card/Netbanking)" : paymentMode}</div>
+                {gatewayTransactionRef && <div><b>Transaction Ref:</b> <code style={{ color: '#2563eb', background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>{gatewayTransactionRef}</code></div>}
+              </div>
+            )}
           </div>
           <div className="footer-right">
             <table className="totals-table">

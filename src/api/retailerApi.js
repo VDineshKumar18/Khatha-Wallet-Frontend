@@ -28,3 +28,18 @@ export const getNearbyRetailers = (lat, lng, radius = 10) => {
         params: { lat, lng, radius }
     });
 };
+/**
+ * ✅ UPLOAD KYC DOCUMENT
+ */
+export const uploadKYCDocument = (file, type) => {
+    const retailerId = sessionStorage.getItem("retailerId");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
+    return axiosClient.post("/retailer/kyc-upload", formData, {
+        headers: { 
+            "X-Retailer-Id": retailerId,
+            "Content-Type": "multipart/form-data"
+        }
+    });
+};

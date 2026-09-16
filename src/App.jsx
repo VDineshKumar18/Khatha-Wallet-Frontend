@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import("./Dashboard"));
 const LoginModal = lazy(() => import("./LoginModal"));
 const Landing = lazy(() => import("./Landing"));
 const CustomerApp = lazy(() => import("./CustomerApp"));
+const AdminApp = lazy(() => import("./AdminApp"));
 
 // ✅ Loading Fallback
 import logoIcon from "./assets/logo-icon.png";
@@ -55,6 +56,19 @@ function App() {
     localStorage.getItem("lastLoginMode") || "retailer"
   );
 
+  const handleCustomerStartShopping = () => {
+    const hasAccount = localStorage.getItem("hasCustomerAccount") === "true";
+    if (hasAccount) {
+      setShowLoginModal("customer");
+    } else {
+      sessionStorage.removeItem("customer_accounts");
+      sessionStorage.removeItem("customer_retailer");
+      setCustomerAccounts([]);
+      setAppMode("customer");
+      navigate("/customer");
+    }
+  };
+
   const handleLoginClick = (mode) => {
     // If mode is a string (e.g. from Landing feature buttons), use it.
     // Otherwise (e.g. from header Login button event), default to lastLoginMode.
@@ -87,7 +101,17 @@ function App() {
         {/* LANDING PAGE */}
         <Route path="/" element={
           loggedIn ? <Navigate to={appMode === "customer" ? "/customer" : "/retailer"} replace /> : (
-            <Landing onLoginClick={handleLoginClick} />
+            <Landing 
+              onLoginClick={handleLoginClick} 
+              onBrowseAsCustomer={handleCustomerStartShopping}
+              onBrowseAsGuest={() => {
+                sessionStorage.removeItem("customer_accounts");
+                sessionStorage.removeItem("customer_retailer");
+                setCustomerAccounts([]);
+                setAppMode("customer");
+                navigate("/customer");
+              }}
+            />
           )
         } />
 
@@ -98,18 +122,21 @@ function App() {
 
         {/* CUSTOMER APP */}
         <Route path="/customer/*" element={
-          appMode === "customer" ? (
-            <CustomerApp
-              initialAccounts={customerAccounts}
-              onLogout={() => {
-                sessionStorage.removeItem("customer_accounts");
-                sessionStorage.removeItem("customer_retailer");
-                setAppMode("retailer");
-                navigate("/");
-              }}
-            />
-          ) : <Navigate to="/" replace />
+          <CustomerApp
+            initialAccounts={customerAccounts}
+            onLoginRequired={() => setShowLoginModal("customer")}
+            onLogout={() => {
+              sessionStorage.removeItem("customer_accounts");
+              sessionStorage.removeItem("customer_retailer");
+              setAppMode("retailer");
+              navigate("/");
+            }}
+          />
         } />
+
+        {/* ADMIN PORTAL */}
+        <Route path="/super-admin/*" element={<AdminApp />} />
+        <Route path="/admin/*" element={<AdminApp />} />
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -117,8 +144,17 @@ function App() {
 
       {showLoginModal && (
         <LoginModal
-          initialMode={showLoginModal}
+          initialMode={showLoginModal === 'signup' ? 'retailer' : showLoginModal} // default to retailer if signup selected, user can toggle
+          initialSignup={showLoginModal === 'signup'}
           onClose={() => setShowLoginModal(false)}
+          onBrowseAsGuest={() => {
+            sessionStorage.removeItem("customer_accounts");
+            sessionStorage.removeItem("customer_retailer");
+            setCustomerAccounts([]);
+            setAppMode("customer");
+            setShowLoginModal(false);
+            navigate("/customer");
+          }}
           onSuccess={() => {
             localStorage.setItem("lastLoginMode", "retailer");
             setLastLoginMode("retailer");
@@ -129,6 +165,7 @@ function App() {
           onCustomerSuccess={(accounts) => {
             localStorage.setItem("lastLoginMode", "customer");
             setLastLoginMode("customer");
+            localStorage.setItem("hasCustomerAccount", "true"); // Flag customer account persistence
 
             // Persist for refresh
             sessionStorage.setItem("customer_accounts", JSON.stringify(accounts));
@@ -139,7 +176,9 @@ function App() {
             setCustomerAccounts(accounts);
             setAppMode("customer");
             setShowLoginModal(false);
-            navigate("/customer");
+            if (!location.pathname.startsWith("/customer")) {
+              navigate("/customer");
+            }
           }}
         />
       )}

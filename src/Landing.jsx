@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { Github } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import "./styles/landing.css";
 
 import heroImg from "./assets/landing/hero.png";
-import billingImg from "./assets/landing/billing.png";
+import billingImg from "./assets/landing/inventory.png"; // fallback or original preview images
 import inventoryImg from "./assets/landing/inventory.png";
 import gstImg from "./assets/landing/gst.png";
-import logoImg from "./assets/landing/logo.png";
+import logoImg from "./assets/landing/logo.svg";
 
 
-function Landing({ onLoginClick }) {
+function Landing({ onLoginClick, onBrowseAsCustomer, onBrowseAsGuest }) {
+  const navigate = useNavigate();
   const [autoPopupShown, setAutoPopupShown] = useState(false);
 
   /* ================= INTERACTIVE SHOWCASE STATE ================= */
@@ -56,15 +58,30 @@ function Landing({ onLoginClick }) {
           <img src={logoImg} alt="Khatha Wallet" className="nav-logo" />
         </div>
 
-        <div>
-          <button className="btn outline" onClick={onLoginClick}>
+        <div className="header-nav-pill">
+          <button className="nav-link-btn" onClick={onLoginClick}>
             Login
           </button>
-          <button className="btn primary" onClick={onLoginClick}>
-            Start Free
+          <button className="nav-link-btn highlight" onClick={() => onLoginClick('signup')}>
+            Signup
           </button>
         </div>
       </header>
+
+      {/* ================= SUB-HEADER NAV ================= */}
+      <div className="subheader-nav">
+        <div className="header-nav-pill">
+          <button className="nav-link-btn" onClick={() => onLoginClick('retailer')}>
+            Retailer
+          </button>
+          <button className="nav-link-btn" onClick={() => navigate('/admin')}>
+            Admin
+          </button>
+          <button className="nav-link-btn highlight" onClick={onBrowseAsGuest}>
+            Products
+          </button>
+        </div>
+      </div>
 
       {/* ================= HERO ================= */}
       <section className="hero">
@@ -76,7 +93,7 @@ function Landing({ onLoginClick }) {
             <strong>"Connected Commerce"</strong>: Smart catalogs, stock alerts, and digital khatha.
           </p>
           <div className="hero-actions">
-            <button className="btn primary large" onClick={onLoginClick} aria-label="Start Using Khatha Wallet">
+            <button className="btn primary large" onClick={() => onLoginClick('signup')} aria-label="Start Using Khatha Wallet">
               Start Saving Time
             </button>
             <p className="small-note">Modernizing 50,000+ Rural Businesses</p>
@@ -87,7 +104,7 @@ function Landing({ onLoginClick }) {
           src={heroImg}
           alt="Khatha Wallet Dashboard Preview showing Inventory and Billing features"
           style={{ contentVisibility: 'auto' }}
-          fetchpriority="high"
+          fetchPriority="high"
         />
       </section>
 
@@ -106,7 +123,7 @@ function Landing({ onLoginClick }) {
           <div className="tag">FOR CUSTOMERS</div>
           <h2>Shop Smart, Skip the Wait</h2>
           <p>Order from home, pick up when ready. Zero waiting time.</p>
-          <button className="btn white" onClick={() => onLoginClick('customer')} aria-label="Start Shopping (For Customers)">
+          <button className="btn white" onClick={onBrowseAsCustomer} aria-label="Start Shopping (For Customers)">
             Start Shopping &gt;
           </button>
         </div>

@@ -1,20 +1,20 @@
-import React from "react";
+// React import removed since StrictMode is not used
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
+import AdminApp from "./AdminApp";
 import MobileScanner from "./MobileScanner";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./i18n/i18n";   // ✅ CORRECT
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/*" element={<App />} />
-        <Route path="/scan" element={<MobileScanner />} />
-      </Routes>
-    </BrowserRouter>
+  <BrowserRouter>
+    <Routes>
+      <Route path="/admin/*" element={<AdminApp />} />
+      <Route path="/*" element={<App />} />
+      <Route path="/scan" element={<MobileScanner />} />
+    </Routes>
 
     <ToastContainer
       position="top-center"
@@ -29,5 +29,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       theme="light"
       toastClassName="premium-toast"
     />
-  </React.StrictMode>
+  </BrowserRouter>
 );

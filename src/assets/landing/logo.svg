@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Definitions for gradients and shadows -->
+  <defs>
+    <!-- Background Gradient for Book/Wallet -->
+    <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    
+    <!-- Accent Gradient for Clasp -->
+    <linearGradient id="claspGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Shadow for Depth -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="6" stdDeviation="4" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Group containing the book/wallet icon -->
+  <g transform="translate(100, 50)">
+    <!-- Book Spine Pages Layer (Top details) -->
+    <!-- Inner page lines showing book structure -->
+    <path d="M 40,40 L 260,40 A 20,20 0 0 1 280,60 L 280,75 A 5,5 0 0 1 275,80 L 40,80 Z" fill="#ffffff" stroke="#1d4ed8" stroke-width="8" stroke-linejoin="round" />
+    <path d="M 50,55 L 250,55 A 10,10 0 0 1 260,65 L 260,75 L 50,75 Z" fill="#ffffff" stroke="#1d4ed8" stroke-width="4" />
+
+    <!-- Main Book Cover/Wallet Body -->
+    <rect x="40" y="70" width="240" height="260" rx="24" fill="url(#walletGrad)" filter="url(#dropShadow)" />
+
+    <!-- Spine details on the left of the wallet -->
+    <path d="M 40,70 L 70,70 L 70,330 L 40,330 Z" fill="#1e40af" opacity="0.4" />
+
+    <!-- Wallet Clasp (wraps from right to left) -->
+    <!-- Path starts from right, curves around the front -->
+    <path d="M 280,160 L 230,160 C 200,160 190,175 190,200 C 190,225 200,240 230,240 L 280,240 Z" fill="url(#claspGrad)" filter="url(#dropShadow)" />
+    
+    <!-- Clasp Border/Line -->
+    <path d="M 280,160 L 230,160 C 200,160 190,175 190,200 C 190,225 200,240 230,240 L 280,240" fill="none" stroke="#ffffff" stroke-width="6" />
+
+    <!-- Rupee Circle Button -->
+    <circle cx="215" cy="200" r="28" fill="#ffffff" />
+
+    <!-- Rupee Symbol (₹) inside Circle -->
+    <text x="215" y="211" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="900" fill="#1d4ed8" text-anchor="middle">₹</text>
+  </g>
+
+  <!-- Logo Text -->
+  <text x="250" y="435" font-family="'Outfit', 'Inter', 'system-ui', sans-serif" font-size="52" font-weight="800" fill="#1e3a8a" text-anchor="middle" letter-spacing="-1">
+    Khatha <tspan fill="#2563eb">Wallet</tspan>
+  </text>
+</svg>

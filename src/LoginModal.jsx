@@ -24,7 +24,11 @@ const decodeJwt = (token) => {
   }
 };
 
-function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "retailer" }) {
+const validateEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+function LoginModal({ onClose, onSuccess, onCustomerSuccess, onBrowseAsGuest, initialMode = "retailer", initialSignup = false }) {
   const [mode, setMode] = useState(initialMode); // 'retailer' | 'customer'
 
   const [email, setEmail] = useState("");
@@ -34,12 +38,26 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
   const [phone, setPhone] = useState("");
 
   const [otpSent, setOtpSent] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
+  const [showSignup, setShowSignup] = useState(initialSignup);
   const [registeredConflict, setRegisteredConflict] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
 
   const googleBtnRef = useRef(null);
+
+  // OTP Resend Timer Effect
+  useEffect(() => {
+    let interval = null;
+    if (otpSent && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [otpSent, timer]);
 
   // Initialize Google Sign-In
   // Disable Google Sign-In for now as requested
@@ -83,6 +101,7 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
           await sendOtp(gEmail);
           toast.success(`Google Account Recognized: ${gEmail}`);
           setOtpSent(true);
+          setTimer(30);
 
           // Simulation: Automatically verify a dummy OTP
           setOtp("123456");
@@ -105,6 +124,7 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
           // Customer flow
           const res = await sendCustomerOtp(gEmail);
           setOtpSent(true);
+          setTimer(30);
           // For customer, we don't auto-login unless we verify. 
           // Let them enter OTP for now or wait for backend support.
         }
@@ -123,6 +143,10 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
 
   // ================= SEND OTP =================
   const handleSendOtp = async () => {
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -136,6 +160,7 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
 
       setOtpSent(true);
       setShowSignup(false);
+      setTimer(30);
     } catch (err) {
       if (mode === "retailer") {
         setOtpSent(false);
@@ -208,6 +233,10 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
 
   // ================= SIGN UP (Retailer) / REGISTER (Customer) =================
   const handleSignup = async () => {
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -321,6 +350,7 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
                   localStorage.setItem("lastLoginMode", "retailer");
                   setOtpSent(false);
                   setError("");
+                  setTimer(0);
                 }}
               >
                 Retailer
@@ -332,6 +362,7 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
                   localStorage.setItem("lastLoginMode", "customer");
                   setOtpSent(false);
                   setError("");
+                  setTimer(0);
                 }}
               >
                 Customer
@@ -344,6 +375,7 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
               <div className="input-wrapper">
                 <span className="input-icon">✉️</span>
                 <input
+                  type="email"
                   placeholder="name@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -394,6 +426,20 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
                       disabled={loading}
                     />
                   ))}
+                </div>
+                <div className="otp-resend-container">
+                  {timer > 0 ? (
+                    <span className="otp-timer">Resend OTP in {timer}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="resend-btn"
+                      onClick={handleSendOtp}
+                      disabled={loading}
+                    >
+                      {loading ? "Sending..." : "Resend OTP"}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -477,8 +523,42 @@ function LoginModal({ onClose, onSuccess, onCustomerSuccess, initialMode = "reta
             */}
 
             <p className="footer-link">
-              Don't have an account? <span className="link-text" onClick={() => setShowSignup(true)}>Start free trial</span>
+              {showSignup ? (
+                <>
+                  Already have an account?{" "}
+                  <span
+                    className="link-text"
+                    onClick={() => {
+                      setShowSignup(false);
+                      setOtpSent(false);
+                      setError("");
+                      setRegisteredConflict(false);
+                    }}
+                  >
+                    Login
+                  </span>
+                </>
+              ) : (
+                <>
+                  Don't have an account?{" "}
+                  <span
+                    className="link-text"
+                    onClick={() => {
+                      setShowSignup(true);
+                      setError("");
+                    }}
+                  >
+                    Start free trial
+                  </span>
+                </>
+              )}
             </p>
+
+            {(mode === "customer" || mode === "customer_register") && (
+              <p className="footer-link" style={{ marginTop: '12px' }}>
+                Just looking? <span className="link-text" style={{ color: '#2563eb' }} onClick={onBrowseAsGuest}>Browse as Guest</span>
+              </p>
+            )}
 
           </div>
         </div>

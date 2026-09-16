@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { getRetailerProfile, updateRetailerProfile } from "./api/retailerApi";
-import { User, Phone, Mail, Save, ArrowLeft, Loader2, MapPin, CreditCard, Pencil, X, PiggyBank, LogOut, Users, UserPlus, Calendar, Clock, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { getRetailerProfile, updateRetailerProfile, uploadKYCDocument } from "./api/retailerApi";
+import { User, Phone, Mail, Save, ArrowLeft, Loader2, MapPin, CreditCard, Pencil, X, PiggyBank, LogOut, Users, UserPlus, Calendar, Clock, Trash2, CheckCircle, XCircle, ShieldCheck, FileText, Camera, AlertTriangle, Upload } from "lucide-react";
 import * as staffApi from "./api/staffApi";
 import "./RetailerProfile.css";
 
@@ -21,6 +21,14 @@ function RetailerProfile({ onBack, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // KYC / Verification State
+  const [gstNumber, setGstNumber] = useState("");
+  const [approvalStatus, setApprovalStatus] = useState("PENDING");
+  const [shopLicenseUrl, setShopLicenseUrl] = useState("");
+  const [shopPhotoUrl, setShopPhotoUrl] = useState("");
+  const [isVerified, setIsVerified] = useState(false);
+  const [uploading, setUploading] = useState({ LICENSE: false, PHOTO: false });
 
   // Staff State
   const [activeTab, setActiveTab] = useState("PROFILE"); // PROFILE or STAFF
@@ -160,6 +168,12 @@ function RetailerProfile({ onBack, onLogout }) {
       setDeliveryRadiusKm(data.deliveryRadiusKm || 10);
       setSchemeTargetAmount(data.schemeTargetAmount || 6000);
       setSchemeMonthlyAmount(data.schemeMonthlyAmount || 500);
+      
+      setGstNumber(data.gstNumber || "");
+      setApprovalStatus(data.approvalStatus || "PENDING");
+      setShopLicenseUrl(data.shopLicenseUrl || "");
+      setShopPhotoUrl(data.shopPhotoUrl || "");
+      setIsVerified(data.isVerified || false);
 
       if (data.name) sessionStorage.setItem("retailerName", data.name);
       if (data.email) sessionStorage.setItem("retailerEmail", data.email);
@@ -208,7 +222,8 @@ function RetailerProfile({ onBack, onLogout }) {
         name, phone, shopName, upiId, payeeName,
         latitude, longitude, deliveryRadiusKm,
         schemeTargetAmount: Number(schemeTargetAmount),
-        schemeMonthlyAmount: Number(schemeMonthlyAmount)
+        schemeMonthlyAmount: Number(schemeMonthlyAmount),
+        gstNumber
       };
       await updateRetailerProfile(payload);
       sessionStorage.setItem("retailerShopName", shopName);
@@ -218,6 +233,26 @@ function RetailerProfile({ onBack, onLogout }) {
       toast.error("Failed to update profile");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(prev => ({ ...prev, [type]: true }));
+      const res = await uploadKYCDocument(file, type);
+      toast.success(`${type === 'LICENSE' ? 'Shop License' : 'Shop Photo'} uploaded!`);
+      
+      // Update local state with the new filename
+      if (type === 'LICENSE') setShopLicenseUrl(res.data.fileName);
+      else setShopPhotoUrl(res.data.fileName);
+      
+    } catch (err) {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(prev => ({ ...prev, [type]: false }));
     }
   };
 
@@ -254,6 +289,10 @@ function RetailerProfile({ onBack, onLogout }) {
                 <div className="tab-switcher">
                   <button className={activeTab === "PROFILE" ? "active" : ""} onClick={() => setActiveTab("PROFILE")}>Profile Settings</button>
                   <button className={activeTab === "STAFF" ? "active" : ""} onClick={() => setActiveTab("STAFF")}>Staff & Attendance</button>
+                  <button className={activeTab === "VERIFICATION" ? "active" : ""} onClick={() => setActiveTab("VERIFICATION")}>
+                    <ShieldCheck size={14} style={{ marginRight: 6 }} />
+                    Verification
+                  </button>
                 </div>
               </div>
             </div>
@@ -322,6 +361,74 @@ function RetailerProfile({ onBack, onLogout }) {
                   <div className="card-title"><CreditCard size={20} className="text-purple-500" /> Linked Accounts (UPI)</div>
                   <div className="form-group"><label>UPI ID (VPA)</label><input value={upiId} onChange={(e) => setUpiId(e.target.value)} disabled={!isEditing} /></div>
                   <div className="form-group"><label>Payee Name</label><input value={payeeName} onChange={(e) => setPayeeName(e.target.value)} disabled={!isEditing} /></div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === "VERIFICATION" ? (
+            <div className="verification-view" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+              <div className="glass-card detail-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <ShieldCheck className="text-blue-500" /> Account Verification Status
+                  </h3>
+                  <div className={`status-badge ${approvalStatus.toLowerCase()}`} style={{
+                    padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700,
+                    textTransform: 'uppercase',
+                    background: approvalStatus === 'APPROVED' ? '#dcfce7' : approvalStatus === 'REJECTED' ? '#fee2e2' : '#fef9c3',
+                    color: approvalStatus === 'APPROVED' ? '#166534' : approvalStatus === 'REJECTED' ? '#991b1b' : '#854d0e'
+                  }}>
+                    {approvalStatus}
+                  </div>
+                </div>
+
+                {isVerified ? (
+                  <div style={{ padding: 20, background: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0', display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <CheckCircle className="text-green-600" />
+                    <div>
+                      <h4 style={{ margin: 0, color: '#166534' }}>Verified Merchant</h4>
+                      <p style={{ margin: '4px 0 0', fontSize: 13, color: '#15803d' }}>Your business documents have been approved. Your shop is now visible to all customers.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: 20, background: '#fffbeb', borderRadius: 12, border: '1px solid #fef3c7', display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <AlertTriangle className="text-amber-600" />
+                    <div>
+                      <h4 style={{ margin: 0, color: '#92400e' }}>Verification Required</h4>
+                      <p style={{ margin: '4px 0 0', fontSize: 13, color: '#b45309' }}>Please upload the following documents to get your shop verified and visible to customers.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-grid" style={{ marginTop: 30 }}>
+                  <div className="form-group">
+                    <label>GST Number (Optional)</label>
+                    <input 
+                      placeholder="e.g. 22AAAAA0000A1Z5" 
+                      value={gstNumber} 
+                      onChange={(e) => setGstNumber(e.target.value)} 
+                      disabled={!isEditing} 
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
+                  <div className="upload-box-kyc">
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4b5563', marginBottom: 8 }}>Shop License / Registration</label>
+                    <div className="kyc-dropzone" onClick={() => !uploading.LICENSE && document.getElementById('license-up').click()}>
+                      {uploading.LICENSE ? <Loader2 className="animate-spin" /> : (shopLicenseUrl ? <FileText className="text-blue-500" /> : <Upload />)}
+                      <span>{shopLicenseUrl ? "License Uploaded ✓" : "Upload Shop License"}</span>
+                    </div>
+                    <input id="license-up" type="file" hidden onChange={(e) => handleFileUpload(e, 'LICENSE')} accept="image/*,.pdf" />
+                  </div>
+
+                  <div className="upload-box-kyc">
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4b5563', marginBottom: 8 }}>Shop Front Logo / Photo</label>
+                    <div className="kyc-dropzone" onClick={() => !uploading.PHOTO && document.getElementById('photo-up').click()}>
+                      {uploading.PHOTO ? <Loader2 className="animate-spin" /> : (shopPhotoUrl ? <Camera className="text-blue-500" /> : <Camera />)}
+                      <span>{shopPhotoUrl ? "Photo Uploaded ✓" : "Upload Shop Photo"}</span>
+                    </div>
+                    <input id="photo-up" type="file" hidden onChange={(e) => handleFileUpload(e, 'PHOTO')} accept="image/*" />
+                  </div>
                 </div>
               </div>
             </div>
