@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://khatha-wallet-backend-production.up.railway.app/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://khatha-backend.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
