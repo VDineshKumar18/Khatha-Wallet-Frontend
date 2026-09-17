@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://khatha-backend.onrender.com/api";
+const rawApiBase = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE = (!rawApiBase || rawApiBase.includes("railway.app") || rawApiBase.includes("your-backend-url"))
+  ? "https://khatha-backend.onrender.com/api"
+  : rawApiBase;
+
 const BASE_URL = `${API_BASE}/auth`;
 const CUSTOMER_AUTH_URL = `${API_BASE}/customer-auth`;
 

@@ -1,7 +1,12 @@
 import axios from "axios";
 
+const rawUrl = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE_URL = (!rawUrl || rawUrl.includes("railway.app") || rawUrl.includes("your-backend-url"))
+  ? "https://khatha-backend.onrender.com/api"
+  : rawUrl;
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://khatha-backend.onrender.com/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
