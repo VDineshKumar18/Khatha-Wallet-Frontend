@@ -4,7 +4,10 @@ function SyncContactsModal({ onClose, onImport }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://khatha-wallet-backend-production.up.railway.app/api";
+  const rawApiUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const API_BASE_URL = (!rawApiUrl || rawApiUrl.includes("railway.app") || rawApiUrl.includes("your-backend-url"))
+    ? "https://khatha-backend.onrender.com/api"
+    : rawApiUrl;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   /* ================= GOOGLE CONTACT SYNC ================= */
